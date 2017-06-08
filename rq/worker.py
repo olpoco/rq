@@ -138,10 +138,9 @@ class Worker(object):
                              for queue in queues.split(',')]
         return worker
 
-
-    def __init__(self, queues, name=None,
-                 default_result_ttl=None, connection=None, exc_handler=None,
-                 exception_handlers=None, default_worker_ttl=None, job_class=None, success_handler=None):  # noqa
+    def __init__(self, queues, name=None, default_result_ttl=None, connection=None,
+                 exc_handler=None, exception_handlers=None, default_worker_ttl=None,
+                 job_class=None, queue_class=None):  # noqa
         if connection is None:
             connection = get_current_connection()
         self.connection = connection
@@ -158,7 +157,6 @@ class Worker(object):
         self.queues = queues
         self.validate_queues()
         self._exc_handlers = []
-        self._success_handler = success_handler
 
         if default_result_ttl is None:
             default_result_ttl = DEFAULT_RESULT_TTL
@@ -724,14 +722,8 @@ class Worker(object):
             self.handle_exception(job, *sys.exc_info())
             return False
 
-            pipeline.execute()
-                
-            if self._success_handler:
-              self._success_handler(job)
-              
         finally:
             pop_connection()
-
 
         self.log.info('{0}: {1} ({2})'.format(green(job.origin), blue('Job OK'), job.id))
         if rv is not None:
