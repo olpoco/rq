@@ -123,7 +123,7 @@ class Worker(object):
 
     def __init__(self, queues, name=None,
                  default_result_ttl=None, connection=None, exc_handler=None,
-                 exception_handlers=None, default_worker_ttl=None, job_class=None):  # noqa
+                 exception_handlers=None, default_worker_ttl=None, job_class=None, success_handler=None):  # noqa
         if connection is None:
             connection = get_current_connection()
         self.connection = connection
@@ -134,6 +134,7 @@ class Worker(object):
         self.queues = queues
         self.validate_queues()
         self._exc_handlers = []
+        self._success_handler = success_handler
 
         if default_result_ttl is None:
             default_result_ttl = DEFAULT_RESULT_TTL
@@ -586,6 +587,9 @@ class Worker(object):
                 started_job_registry.remove(job, pipeline=pipeline)
 
                 pipeline.execute()
+                
+                if self._success_handler:
+                  self._success_handler(job)
 
             except Exception:
                 job.set_status(JobStatus.FAILED, pipeline=pipeline)
