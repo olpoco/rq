@@ -164,7 +164,16 @@ class Job(object):
         self.set_status(status)
 
     status = property(_get_status, _set_status)
+    
 
+    def set_started_at_now(self, pipeline=None):
+        now_fmt = utcformat(utcnow())
+        self.hset_value('started_at', now_fmt, pipeline)
+
+    def hset_value(self, key, value, pipeline=None):
+        connection = pipeline if pipeline is not None else self.connection
+        connection.hset(self.key, key, value)    
+        
     @property
     def is_finished(self):
         return self.get_status() == JobStatus.FINISHED
@@ -307,6 +316,7 @@ class Job(object):
         self.description = None
         self.origin = None
         self.enqueued_at = None
+        self.started_at = None
         self.ended_at = None
         self._result = None
         self.exc_info = None
@@ -411,6 +421,7 @@ class Job(object):
         self.origin = as_text(obj.get('origin'))
         self.description = as_text(obj.get('description'))
         self.enqueued_at = to_date(as_text(obj.get('enqueued_at')))
+        self.started_at = to_date(as_text(obj.get('started_at')))
         self.ended_at = to_date(as_text(obj.get('ended_at')))
         self._result = unpickle(obj.get('result')) if obj.get('result') else None  # noqa
         self.exc_info = obj.get('exc_info')
@@ -435,6 +446,8 @@ class Job(object):
             obj['enqueued_at'] = utcformat(self.enqueued_at)
         if self.ended_at is not None:
             obj['ended_at'] = utcformat(self.ended_at)
+        if self.started_at is not None:
+            obj['started_at'] = utcformat(self.started_at)            
         if self._result is not None:
             obj['result'] = dumps(self._result)
         if self.exc_info is not None:

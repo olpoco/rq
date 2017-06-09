@@ -433,6 +433,10 @@ class Worker(object):
 
                 if job.get_status() == JobStatus.FINISHED:
                     queue.enqueue_dependents(job)
+                
+                    if self._success_handler:
+                      self._success_handler(job)
+                      
 
                 did_perform_work = True
 
@@ -549,6 +553,7 @@ class Worker(object):
             registry = StartedJobRegistry(job.origin, self.connection)
             registry.add(job, timeout, pipeline=pipeline)
             job.set_status(JobStatus.STARTED, pipeline=pipeline)
+            job.set_started_at_now(pipeline=pipeline)
             pipeline.execute()
 
         msg = 'Processing {0} from {1} since {2}'
@@ -641,6 +646,9 @@ class Worker(object):
         exc_string = ''.join(traceback.format_exception(*exc_info))
         self.log.warning('Moving job to {0!r} queue'.format(self.failed_queue.name))
         self.failed_queue.quarantine(job, exc_info=exc_string)
+        
+    def add_success_handler(self, handler):
+        self._success_handler = handler
 
     def push_exc_handler(self, handler_func):
         """Pushes an exception handler onto the exc handler stack."""
